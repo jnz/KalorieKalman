@@ -20,6 +20,9 @@ Features
 * Calorie Deficit Calculation: Automatically calculate your daily calorie deficit, enabling you to understand the effectiveness of your diet and exercise plans.
 * Kalman Filter Precision: Incorporate the Kalman filter for enhanced accuracy in predictions and tracking, ensuring you have reliable data to base your decisions on.
 
+Example Results
+===============
+
 The following figure shows the estimated TDEE (in kcal) over time in red with
 the body mass (in kg) curve in blue.  Over the course of 130 days the TDEE is
 changing from about 2700 kcal down to about 2600 kcal, probably due to
