@@ -10,6 +10,8 @@ deficits. Utilizing the robustness of a Kalman filter, KalorieKalman offers an
 innovative approach to health and fitness tracking, making it easier for users
 to achieve their dietary goals.
 
+© 2024 Jan Zwiener
+
 Features
 --------
 

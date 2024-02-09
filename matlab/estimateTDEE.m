@@ -9,7 +9,7 @@ std_weight_measurement  = 1.15;   % kg std. deviation of weight measurement. Nor
 TDEE_begin              = 2000;   % kcal TDEE at the start. As the filter runs backwards as well, the initial value is not that critical.
 kcal_tracking_precision = 100;    % kcal/day tracking error
 pred_noise_kg           = 0.05;   % kg/day body mass prediction noise
-pred_noise_tdee         = 15.0;   % kcal/day prediction noise (this is supposed to be the basal metabolic rate (BMR) variation from day to day, which is assumed to be stabale).
+pred_noise_tdee         = 10.0;   % kcal/day prediction noise (this is supposed to be the basal metabolic rate (BMR) variation from day to day, which is assumed to be somewhat stable but subject to metabolic adaptions over a longer time).
 % </const to tune>
 
 % <input data>
@@ -29,10 +29,10 @@ end
 dietenergyconsumed_csv_file = files(1).name;
 % </input data>
 
-fprintf('Loading body mass... ');
+fprintf('Loading body mass from %s... ', bodymass_csv_file);
 bodymass = readhealthkitcsv(bodymass_csv_file);
 fprintf('%i entries.\n', size(bodymass, 1));
-fprintf('Loading energy consumed... ');
+fprintf('Loading energy consumed from %s... ', dietenergyconsumed_csv_file);
 energyconsumed = readhealthkitcsv(dietenergyconsumed_csv_file);
 fprintf('%i entries.\n', size(energyconsumed, 1));
 
@@ -43,6 +43,11 @@ bodymass = bodymass(ia, :);
 epochs = size(bodymass,1) - 1;
 if epochs ~= epochs_pre
     fprintf('Filtered %i body mass measurements down to %i unique measurements.\n', epochs_pre+1, epochs);
+end
+
+if epochs < 5
+    fprint('Not enough measurements');
+    return
 end
 
 % state vector:
@@ -147,6 +152,7 @@ end
         rts_history_filter_state_P_aposteriori, ...
         rts_history_phi);
 
+fprintf('Estimated TDEE at the beginning of input data: %.0f kcal (+- %.1f)\n', filter_state_rts(2, 1), sqrt(filter_state_rts_P(2,2,1)));
 fprintf('Estimated TDEE at the end of input data: %.0f kcal (+- %.1f)\n', filter_state_rts(2, end), sqrt(filter_state_rts_P(2,2,end)));
 fprintf('Number of epochs with a mismatch between calories and body mass measurements: %i\n', questionable_measurements);
 
@@ -190,10 +196,11 @@ std_tdee = sqrt(cov_tdee);
 xlabel('Time (days)');
 title(sprintf('TDEE estimation: %.0f kcal', filter_state_rts(2, end)));
 yyaxis left
-smooth_window_size = ceil(length(filter_state_rts(1, :))*0.15);
-weight_filtered_kg = movmean(filter_state_rts(1, :), smooth_window_size);
-plot(history_time_in_days, weight_filtered_kg, 'b');
-ylabel('Weight (kg)');
+% smooth_window_size = ceil(length(filter_state_rts(1, :))*0.2);
+% weight_filtered_kg = movmean(filter_state_rts(1, :), smooth_window_size);
+% plot(history_time_in_days, weight_filtered_kg, 'b');
+plot(history_time_in_days, filter_state_rts(1, :), 'b');
+ylabel('Mass (kg)');
 yyaxis right
 plot(history_time_in_days, filter_state_rts(2, :), 'r-');
 plot(history_time_in_days, filter_state_rts(2, :) + std_tdee, 'k--');
@@ -210,17 +217,17 @@ clf;
 hold on;
 grid on;
 plot(history_time_in_days, filter_state_rts(1, :), 'b');
-plot(history_time_in_days, history_weight_raw, 'gx');
+plot(history_time_in_days, history_weight_raw, 'x', 'Color', [0.8 0.8 0.8]);
 p = polyfit(history_time_in_days, filter_state_rts(1, :), 1);
 slope_kg_per_day = p(1); % weight loss trend kg/day
 y_fit = polyval(p, history_time_in_days);
-plot(history_time_in_days, y_fit, '--', 'Color', [0.8 0.8 0.8]);
+plot(history_time_in_days, y_fit, 'g--');
 xlabel('Time (days)');
 ylabel('Body mass (kg)');
-title(sprintf('Body mass over time. Overall trend: %.1f kg/day', slope_kg_per_day));
-legend('Body Mass (smooth)', 'Body Mass (raw)', 'Overall trend', 'Location', 'Best');
+title(sprintf('Body mass over time. Overall trend: %.2f kg/day', slope_kg_per_day));
+legend('Body Mass (filtered)', 'Body Mass (measured)', 'Overall trend', 'Location', 'Best');
 hold off;
-fprintf('Average weight change per day: %.1f kg, %.1f kg/week\n', slope_kg_per_day, slope_kg_per_day*7);
+fprintf('Average weight change per day: %.0f g, %.1f kg/week\n', slope_kg_per_day*1000, slope_kg_per_day*7);
 
 % Energy balance over time
 % ------------------------
@@ -232,18 +239,18 @@ kcal_balance = kcal_per_day - filter_state_rts(2, useful_epochs_kcal_per_day)';
 clf;
 hold on;
 grid on;
-smooth_window_size = ceil(length(filter_state_rts(1, :))*0.05);
+smooth_window_size = ceil(length(filter_state_rts(1, :))*0.2);
 energy_surplus_filtered_kcal = movmean(kcal_balance, smooth_window_size);
 plot(history_time_in_days(useful_epochs_kcal_per_day), energy_surplus_filtered_kcal, 'r-');
-plot(history_time_in_days(useful_epochs_kcal_per_day), kcal_balance, 'gx');
+plot(history_time_in_days(useful_epochs_kcal_per_day), kcal_balance, 'x', 'Color', [0.8 0.8 0.8]);
 % Curve fitting: trend of energy balance
 p = polyfit(history_time_in_days(useful_epochs_kcal_per_day), kcal_balance, 1);
 y_fit = polyval(p, history_time_in_days(useful_epochs_kcal_per_day));
-plot(history_time_in_days(useful_epochs_kcal_per_day), y_fit, '--', 'Color', [0.8 0.8 0.8]);
+plot(history_time_in_days(useful_epochs_kcal_per_day), y_fit, 'g--');
 
 xlabel('Time (days)');
 ylabel('Energy balance (kcal)');
-legend('Energy balance (smooth)', 'Energy balance (raw)', sprintf('Trend %.0f kcal/day', p(1)));
+legend('Energy balance (filtered)', 'Energy balance (data points)', sprintf('Trend %.0f kcal/day', p(1)));
 title(sprintf('Energy balance. Avg: %.0f kcal/day', mean(energy_surplus_filtered_kcal)));
 hold off;
 
