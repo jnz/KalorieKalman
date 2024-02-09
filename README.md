@@ -20,8 +20,8 @@ Features
 * Calorie Deficit Calculation: Automatically calculate your daily calorie deficit, enabling you to understand the effectiveness of your diet and exercise plans.
 * Kalman Filter Precision: Incorporate the Kalman filter for enhanced accuracy in predictions and tracking, ensuring you have reliable data to base your decisions on.
 
-Example Results
-===============
+Example Results Cut
+-------------------
 
 The following figure shows the estimated TDEE (in kcal) over time in red with
 the body mass (in kg) curve in blue.  Over the course of 130 days the TDEE is
@@ -37,18 +37,29 @@ over time due to metabolic adaptions and lack of discipline in maintaining the
 caloric deficit:
 ![Balance](img/balance.png)
 
+Example Results Bulk
+--------------------
+
+The following figure shows the estimated TDEE (in kcal) over time in red with
+the body mass (in kg) curve in blue. Note how the TDEE goes up to almost 2800
+kcal, compared to the cutting phase with approx. 2600 kcal.
+![TDEE](img/tdee_bulk.png)
+
+The filtered body mass trend is shown in this figure, on average the body mass changes by +30 g per day:
+![Trend](img/trend_bulk.png)
+
+The estimated average daily energy balance is a steady surplus of 244 kcal/day:
+![Balance](img/balance_bulk.png)
+
 Getting Started
-===============
+---------------
 
-Prerequisites
--------------
-
-Before you begin, ensure you have the following installed:
+Before you begin, ensure you have the following software installed:
 
 * MATLAB 2017 or higher
 
-Installation (MATLAB)
----------------------
+Installation
+------------
 
 Clone the repository to your local machine:
 
