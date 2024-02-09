@@ -20,6 +20,20 @@ Features
 * Calorie Deficit Calculation: Automatically calculate your daily calorie deficit, enabling you to understand the effectiveness of your diet and exercise plans.
 * Kalman Filter Precision: Incorporate the Kalman filter for enhanced accuracy in predictions and tracking, ensuring you have reliable data to base your decisions on.
 
+The following figure shows the estimated TDEE (in kcal) over time in red with
+the body mass (in kg) curve in blue.  Over the course of 130 days the TDEE is
+changing from about 2700 kcal down to about 2600 kcal, probably due to
+metabolic adaptions during the diet program.
+![TDEE](img/tdee.png)
+
+The filtered body mass trend is shown in this figure, on average the body mass changes by -0.06 kg per day:
+![Trend](img/trend.png)
+
+The estimated average daily energy balance is -420 kcal/day with a trend in reduction
+over time due to metabolic adaptions and lack of discipline in maintaining the
+caloric deficit:
+![Balance](img/balance.png)
+
 Getting Started
 ===============
 
