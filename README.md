@@ -55,6 +55,7 @@ Export the following data types as `.csv` files:
 Note: this requires tracking your consumed calories (for example with
 MyFitnessPal) and body mass (for example with a Bluetooth enabled scale).
 
+Download the data from the CSV app and extract the resulting `.zip` file.
 Place the `.csv` files in the `matlab` folder and run in MATLAB the `estimateTDEE.m` script.
 
 Contributing
