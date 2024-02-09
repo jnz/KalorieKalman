@@ -1,7 +1,7 @@
 KalorieKalman
 =============
 
-![LOGO](img/kaloriekalman.png)
+![LOGO](img/kaloriekalman_small.png)
 
 KalorieKalman is a script package designed to empower individuals on their
 fitness journey by providing estimations of total daily energy
