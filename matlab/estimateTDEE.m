@@ -9,12 +9,24 @@ std_weight_measurement  = 1.15;   % kg std. deviation of weight measurement. Nor
 TDEE_begin              = 2000;   % kcal TDEE at the start. As the filter runs backwards as well, the initial value is not that critical.
 kcal_tracking_precision = 100;    % kcal/day tracking error
 pred_noise_kg           = 0.05;   % kg/day body mass prediction noise
-pred_noise_tdee         = 1.0;    % kcal/day prediction noise (this is supposed to be the basal metabolic rate (BMR) variation from day to day, which is assumed to be stabale).
+pred_noise_tdee         = 15.0;   % kcal/day prediction noise (this is supposed to be the basal metabolic rate (BMR) variation from day to day, which is assumed to be stabale).
 % </const to tune>
 
 % <input data>
-bodymass_csv_file = 'HKQuantityTypeIdentifierBodyMass_2023-06-159_11-02-17_SimpleHealthExportCSV.csv';
-dietenergyconsumed_csv_file = 'HKQuantityTypeIdentifierDietaryEnergyConsumed_2023-06-159_11-02-18_SimpleHealthExportCSV.csv';
+% List all files in the current directory that have 'BodyMass' in their name and a .csv extension
+files = dir('*BodyMass*.csv');
+if length(files) < 1
+    fprintf('No body mass .csv file found')
+    return
+end
+bodymass_csv_file = files(1).name;
+
+files = dir('*DietaryEnergyConsumed*.csv');
+if length(files) < 1
+    fprintf('No dietary energy consumed .csv file found')
+    return
+end
+dietenergyconsumed_csv_file = files(1).name;
 % </input data>
 
 fprintf('Loading body mass... ');
@@ -48,7 +60,7 @@ history_kcals = zeros(epochs, 1);
 history_dt_in_days = zeros(epochs, 1);
 fprintf('Analyzing data between %s and %s.\n', ...
          datestr(bodymass.startDate(1)), ...
-         datestr(bodymass.startDate(end)) );
+         datestr(bodymass.startDate(end)) ); %#ok<DATST>
 
 % for RTS smoother
 n = length(filter_state);
@@ -107,11 +119,11 @@ for i=1:epochs
     prediction_penalty_kg = 0;
     if (dt >= 1) % if for a longer period of time,
         if (sum_kcal < 0.5*filter_state(2)*dt) % the tracked calories is way below the TDEE, print a note to the console
-            fprintf('Note: Low food energy consumption on day %i, i.e. between %s and %s. KCAL=%.0f (~ %.0f KCAL/day).\n', round(history_time_in_days(i)), datestr(d1), datestr(d2), sum_kcal, sum_kcal/dt);
+            fprintf('Note: Low food energy consumption on day %i, i.e. between %s and %s. KCAL=%.0f (~ %.0f KCAL/day).\n', round(history_time_in_days(i)), datestr(d1), datestr(d2), sum_kcal, sum_kcal/dt); %#ok<DATST>
             prediction_penalty_kg = 0.25; % assume that the predicted body mass is a bit more inaccurate
         end
     end
-    
+
     phi = [1   -1/kcal_per_kg_fat * dt; 0 1 ];
     u = sum_kcal; % 1x1 vector
 
@@ -169,7 +181,7 @@ fprintf('Number of epochs with a mismatch between calories and body mass measure
 
 % TDEE estimation over time
 % -------------------------
-figure(3);
+figure;
 clf;
 hold on;
 grid on;
@@ -193,7 +205,7 @@ hold off;
 
 % Body mass over time
 % -------------------
-figure(4);
+figure;
 clf;
 hold on;
 grid on;
@@ -212,7 +224,7 @@ fprintf('Average weight change per day: %.1f kg, %.1f kg/week\n', slope_kg_per_d
 
 % Energy balance over time
 % ------------------------
-figure(5);
+figure;
 kcal_per_day = history_kcals ./ history_dt_in_days;
 useful_epochs_kcal_per_day = kcal_per_day > median(kcal_per_day)*0.3;
 kcal_per_day = kcal_per_day(useful_epochs_kcal_per_day);
