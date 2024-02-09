@@ -13,10 +13,10 @@ to achieve their dietary goals.
 Features
 --------
 
-    TDEE Estimation: Utilize advanced algorithms to accurately estimate your daily energy expenditure, taking into account various factors for improved accuracy.
-    Weight Tracking: Monitor your weight changes over time, providing insights into your progress and helping you stay on track.
-    Calorie Deficit Calculation: Automatically calculate your daily calorie deficit, enabling you to understand the effectiveness of your diet and exercise plans.
-    Kalman Filter Precision: Incorporate the Kalman filter for enhanced accuracy in predictions and tracking, ensuring you have reliable data to base your decisions on.
+* TDEE Estimation: Utilize advanced algorithms to accurately estimate your daily energy expenditure, taking into account various factors for improved accuracy.
+* Weight Tracking: Monitor your weight changes over time, providing insights into your progress and helping you stay on track.
+* Calorie Deficit Calculation: Automatically calculate your daily calorie deficit, enabling you to understand the effectiveness of your diet and exercise plans.
+* Kalman Filter Precision: Incorporate the Kalman filter for enhanced accuracy in predictions and tracking, ensuring you have reliable data to base your decisions on.
 
 Getting Started
 ===============
