@@ -229,25 +229,54 @@ legend('Body Mass (filtered)', 'Body Mass (measured)', 'Overall trend', 'Locatio
 hold off;
 fprintf('Average weight change per day: %.0f g, %.1f kg/week\n', slope_kg_per_day*1000, slope_kg_per_day*7);
 
-% Energy balance over time
-% ------------------------
+% % Energy balance over time
+% % ------------------------
+% figure;
+% kcal_per_day = history_kcals ./ history_dt_in_days;
+% useful_epochs_kcal_per_day = kcal_per_day > median(kcal_per_day)*0.3;
+% kcal_per_day = kcal_per_day(useful_epochs_kcal_per_day);
+% kcal_balance = kcal_per_day - filter_state_rts(2, useful_epochs_kcal_per_day)';
+% clf;
+% hold on;
+% grid on;
+% smooth_window_size = ceil(length(filter_state_rts(1, :))*0.3);
+% energy_surplus_filtered_kcal = movmean(kcal_balance, smooth_window_size);
+% plot(history_time_in_days(useful_epochs_kcal_per_day), energy_surplus_filtered_kcal, 'r-');
+% plot(history_time_in_days(useful_epochs_kcal_per_day), kcal_balance, 'x', 'Color', [0.8 0.8 0.8]);
+% % Curve fitting: trend of energy balance
+% p = polyfit(history_time_in_days(useful_epochs_kcal_per_day), kcal_balance, 1);
+% y_fit = polyval(p, history_time_in_days(useful_epochs_kcal_per_day));
+% plot(history_time_in_days(useful_epochs_kcal_per_day), y_fit, 'g--');
+% 
+% xlabel('Time (days)');
+% ylabel('Energy balance (kcal)');
+% legend('Energy balance (filtered)', 'Energy balance (data points)', sprintf('Trend %.0f kcal/day', p(1)));
+% title(sprintf('Energy balance. Avg: %.0f kcal/day', mean(energy_surplus_filtered_kcal)));
+% hold off;
+
+% Energy Balance (alternative way via change in body mass)
+% --------------------------------------------------------
+time_period_days = ceil(history_time_in_days(end)); % total number of days
+time_days = 1:time_period_days; % get integer days
+% one body mass in kg per day (interpolate):
+body_mass_interp = interp1(history_time_in_days, filter_state_rts(1, :), time_days, 'spline', 'extrap' );
+% change in body mass per day:
+delta_body_mass_per_day = [0, body_mass_interp(2:end)-body_mass_interp(1:(end-1))];
+% calculate energy surplus based on body mass change:
+energy_surplus_kcal = kcal_per_kg_fat * delta_body_mass_per_day;
+
+smooth_window_size = ceil(length(filter_state_rts(1, :))*0.35);
+energy_surplus_filtered_kcal = movmean(energy_surplus_kcal, smooth_window_size);
 figure;
-kcal_per_day = history_kcals ./ history_dt_in_days;
-useful_epochs_kcal_per_day = kcal_per_day > median(kcal_per_day)*0.3;
-kcal_per_day = kcal_per_day(useful_epochs_kcal_per_day);
-kcal_balance = kcal_per_day - filter_state_rts(2, useful_epochs_kcal_per_day)';
 clf;
 hold on;
 grid on;
-smooth_window_size = ceil(length(filter_state_rts(1, :))*0.2);
-energy_surplus_filtered_kcal = movmean(kcal_balance, smooth_window_size);
-plot(history_time_in_days(useful_epochs_kcal_per_day), energy_surplus_filtered_kcal, 'r-');
-plot(history_time_in_days(useful_epochs_kcal_per_day), kcal_balance, 'x', 'Color', [0.8 0.8 0.8]);
+plot(time_days, energy_surplus_filtered_kcal, 'r-');
+plot(time_days, energy_surplus_kcal, 'x', 'Color', [0.8 0.8 0.8]);
 % Curve fitting: trend of energy balance
-p = polyfit(history_time_in_days(useful_epochs_kcal_per_day), kcal_balance, 1);
-y_fit = polyval(p, history_time_in_days(useful_epochs_kcal_per_day));
-plot(history_time_in_days(useful_epochs_kcal_per_day), y_fit, 'g--');
-
+p = polyfit(time_days, energy_surplus_kcal, 1);
+y_fit = polyval(p, time_days);
+plot(time_days, y_fit, 'g--');
 xlabel('Time (days)');
 ylabel('Energy balance (kcal)');
 legend('Energy balance (filtered)', 'Energy balance (data points)', sprintf('Trend %.0f kcal/day', p(1)));
