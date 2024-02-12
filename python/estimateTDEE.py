@@ -5,6 +5,7 @@ from datetime import datetime
 import glob
 from kalman_robust import kalman_robust
 from readhealthkitcsv import readhealthkitcsv
+from kalman_rts import kalman_rts
 
 def estimate_tdee():
     # Constants
@@ -22,6 +23,11 @@ def estimate_tdee():
 
     bodymass = readhealthkitcsv(bodymass_csv_file)
     energyconsumed = readhealthkitcsv(dietenergy_csv_file)
+
+    bodymass_entries_before = len(bodymass)
+    bodymass.drop_duplicates(subset=['startDate'], inplace=True)
+    bodymass_entries_after = len(bodymass)
+    print("Removed %i duplicated body mass entries." % (bodymass_entries_before - bodymass_entries_after))
 
     # Initialize state and covariance matrices
     initial_weight = bodymass['value'].iloc[0]
@@ -49,10 +55,8 @@ def estimate_tdee():
 
     for i in range(epochs):
         # Time delta in days
-        if i < epochs - 1:
-            dt = (bodymass['startDate'].iloc[i+1] - bodymass['startDate'].iloc[i]).days
-        else:
-            dt = 1  # Assuming last measurement has at least one day until the "end" of the data
+        dt_date = (bodymass['startDate'].iloc[i+1] - bodymass['startDate'].iloc[i])
+        dt = dt_date.total_seconds()/(3600.0*24)
 
         history_time_in_days[i] = (bodymass['startDate'].iloc[i] - bodymass['startDate'].iloc[0]).days
         history_weight_raw[i] = bodymass['value'].iloc[i]
@@ -60,10 +64,7 @@ def estimate_tdee():
 
         # Energy consumed calculation
         start_date = bodymass['startDate'].iloc[i]
-        if i < epochs - 1:
-            end_date = bodymass['startDate'].iloc[i+1]
-        else:
-            end_date = bodymass['startDate'].iloc[i] + pd.Timedelta(days=1)
+        end_date = bodymass['startDate'].iloc[i+1]
 
         kcal_in_interval = energyconsumed[(energyconsumed['startDate'] >= start_date) & (energyconsumed['startDate'] < end_date)]['value'].sum()
         history_kcals[i] = kcal_in_interval
@@ -84,6 +85,47 @@ def estimate_tdee():
         filter_state = phi @ filter_state + G * u
         filter_state_P = phi @ filter_state_P @ phi.T + G * Qu * G.T + Qnoise
 
+        rts_history_phi[:,:,i] = phi
+
+    # smooth data backwards with the Rauch Tung Striebel smoother
+    filter_state_rts, filter_state_rts_P = kalman_rts(
+        rts_history_filter_state_apriori,
+        rts_history_filter_state_aposteriori,
+        rts_history_filter_state_P_apriori,
+        rts_history_filter_state_P_aposteriori,
+        rts_history_phi)
+
+    # Calculate the standard deviation for TDEE
+    cov_tdee = filter_state_rts_P[1, 1, :]  # Extract the covariance of TDEE over time
+    std_tdee = np.sqrt(cov_tdee)  # Standard deviation is the square root of the variance
+
+    # Plotting
+    plt.figure()
+    plt.grid(True)
+    plt.xlabel('Time (days)')
+    plt.title(f'TDEE estimation: {filter_state_rts[1, -1]:.0f} kcal')
+
+    # Plot mass
+    plt.plot(history_time_in_days, filter_state_rts[0, :], 'b', label='Body Mass (kg)')
+    plt.ylabel('Mass (kg)')
+    plt.gca().set_prop_cycle(None)  # Reset the color cycle to reuse the first color for yyaxis right
+
+    # Create secondary y-axis for TDEE
+    ax2 = plt.gca().twinx()
+    ax2.plot(history_time_in_days, filter_state_rts[1, :], 'r-', label='TDEE (kcal)')
+    ax2.plot(history_time_in_days, filter_state_rts[1, :] + std_tdee, 'k--', label='1 sigma band TDEE')
+    ax2.plot(history_time_in_days, filter_state_rts[1, :] - std_tdee, 'k--')
+    ax2.set_ylabel('TDEE (kcal)')
+
+    # Adjust the y-limit for TDEE
+    ax2.set_ylim(0, np.max(filter_state_rts[1, :] + std_tdee) * 1.2)
+
+    # Because we are using twin axes, we need to manually construct the legend to include all lines
+    lines, labels = plt.gca().get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(lines + lines2, labels + labels2, loc='best')
+
+    plt.show()
 
 if __name__ == '__main__':
     estimate_tdee()
